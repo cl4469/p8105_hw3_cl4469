@@ -1,0 +1,177 @@
+---
+title: "p8105_hw3_cl4469"
+author: "Chen Liang"
+date: "2023-10-07"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(patchwork)
+library(ggplot2)
+library(p8105.datasets)
+```
+
+```{r}
+data("instacart")
+
+instacart <- 
+  instacart |>
+  as_tibble()
+```
+
+```{r}
+instacart %>% select(product_id) %>% distinct %>% count()
+
+instacart %>% select(user_id, order_id) %>% distinct %>% count 
+  
+instacart %>% select(user_id) %>% distinct %>% count
+
+```
+This `instacart` dataset has `r nrow(instacart)` rows and `r col(instacart)` variables. Each row represents a single product from an instacart order. Variables contain identifiers for user,order, and product; the order in which product was added to the cart. There are several order-level variables, describing the day and time of the order, and number of days since prior order. Then there are several item-specific variables, describing the product name (e.g. Yogurt, Avocado), department (e.g. dairy and eggs, produce), and aisle (e.g. yogurt, fresh fruits), and whether the item has been ordered by this user in the past. In total, there are `r instacart %>% select(product_id) %>% distinct %>% count` products found in `r instacart %>% select(user_id, order_id) %>% distinct %>% count` orders from `r instacart %>% select(user_id) %>% distinct %>% count` distinct users.
+
+```{r}
+instacart |>
+  group_by(aisle) |>
+  summarize(n_obs=n()) |>
+  arrange(desc(n_obs))
+
+max(pull(instacart,aisle_id))
+```
+This is a table showing the number of items ordered from aisle. There are `r max(pull(instacart,aisle_id))` aisles.And the most items ordered from aisles are fresh vegetables and fresh fruits.
+
+```{r}
+instacart |>
+  count(aisle) |>
+  filter(n > 10000) |>
+  mutate(aisle=fct_reorder(aisle, n)) |>
+  ggplot(aes(x=aisle,y=n))+
+  geom_point()+
+  labs(
+    title="Number of items ordered in each aisle",
+    x="Aisle",
+    y="Number of items (n)",
+    caption = "Data from the instacart package")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text = element_text(size = 7.5) )
+```
+Here is a plot that shows the number of items ordered in each aisle. And aisles are ordered by ascending number of items.
+
+```{r}
+rank_3 <- instacart |> 
+  filter(aisle %in% c("baking ingredients","dog food care","packaged vegetables fruits")) |>
+  group_by(aisle,product_name)|>
+  summarise(n=n()) |>
+  mutate(product_ranking=min_rank(desc(n))) |>
+  filter(product_ranking < 2)
+
+knitr::kable(rank_3, caption = "Most Popular Item in Each of The Aisles")
+```
+This table shows the three most popular items in aisles `baking ingredients`, `dog food care`, and `packaged vegetables fruits`, and includes the number of times each item is ordered.
+
+```{r}
+instacart |>
+  filter(product_name %in% c("Pink Lady Apples","Coffee Ice Cream")) |>
+  group_by(product_name, order_dow) |>
+  summarise(mean_hour= mean(order_hour_of_day)) |>
+  spread(key = order_dow, value = mean_hour) |>
+  knitr::kable(caption = "Mean Hour of The Day 2 Items Are Ordered ", digits = 2)
+```
+This table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. The result is a 2x7 table. There are 7 variables as column names ranging from 0 to 6, the row are the specific day in a week. The cell values are means of the hours of each day in a week. From this table, we can see Pink Lady Apples are generally purchased slightly earlier in the day than Coffee Ice Cream, with the exception of day 5.
+
+## Problem 2
+
+```{r}
+data("brfss_smart2010")
+```
+
+#### Data cleaning:
+```{r}
+brfss_df=
+  brfss_smart2010 |>
+  janitor::clean_names() |>
+  filter(topic=="Overall Health",
+         response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) |>
+  mutate(response = fct_relevel(response, "Poor", "Fair", "Good", "Very good", "Excellent"))
+
+  
+# which one is better? 
+#mutate(response = fct_relevel(response, "Poor", "Fair", "Good", "Very good", "Excellent"))
+#mutate(response = factor(response, ordered =TRUE, levels = c("Poor", "Fair", "Good", "Very Good", "Excellent")))
+
+# mutate(response = factor(...)): This approach converts the "response" column into a completely new ordered factor variable. The resulting factor will have the specified levels and will be ordered as specified.
+# mutate(response = fct_relevel(response, ...)): This approach doesn't change the factor's order but only reorders the levels within the existing factor. It can be used to change the order of levels without changing the data type from factor to a different data type.
+```
+
+```{r}
+brfss_df |> 
+  filter(year==2002 | year==2010) |>
+  group_by(year,locationabbr,locationdesc) |>
+  summarize(n=n()) |>
+  count(locationabbr,name = "locations") %>% 
+    filter(locations >= 7) %>% 
+  pivot_wider(
+    names_from = year,
+    values_from = locations
+  )
+```
+The table shows states observed equal or more than 7 times in both 2002 and 2010.There are 6 state have observed equal or more than 7 times in 2002, but 14 much more in 2010.
+
+```{r}
+brfss_df |> 
+  filter(response == "Excellent") |>
+  group_by(year,locationabbr,locationdesc) |>
+  summarize(mean_data_value=mean(data_value,na.rm = TRUE)) |>
+  ggplot(aes(x = year, y = mean_data_value, color = locationabbr)) + 
+  geom_point() + 
+  geom_line(aes(group = locationabbr))+ 
+  labs(
+    y = "Average of Data Value",
+    title = "Spaghetti Plot: Average Value Over Time Within a State"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+brfss_df %>% 
+  filter(response == "Excellent") %>% 
+  group_by(year, locationabbr, locationdesc) %>% 
+  summarize(
+    ave_val = mean(data_value, na.rm = TRUE),
+  ) %>% 
+  ggplot(aes(x = year, y = ave_val)) + 
+  geom_point() + 
+  geom_line(aes(group = locationabbr))+
+  labs(
+    y="average of data value",
+    title = "average value over time within a state"
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
