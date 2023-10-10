@@ -14,10 +14,6 @@ library(p8105.datasets)
 
 ```{r}
 data("instacart")
-
-instacart <- 
-  instacart |>
-  as_tibble()
 ```
 
 ```{r}
@@ -148,30 +144,62 @@ brfss_df %>%
   )
 ```
 
+```{r}
+data2006 <- brfss_df |>
+  filter(year==2006 & locationabbr == "NY") |>
+  ggplot(aes(x = locationdesc, y = data_value, fill = response)) + 
+  geom_bar(stat = "identity", position = "fill" )+
+  coord_flip()+
+  labs(
+    title = "2006 distribution of data value",
+    y = "data value"
+    )+
+  theme(legend.position = "none")
 
+data2010 <- brfss_df |>
+  filter(year==2010 & locationabbr == "NY") |>
+  ggplot(aes(x = locationdesc, y = data_value, fill = response)) + 
+  geom_bar(stat = "identity", position = "fill" ) +
+  coord_flip()+
+  labs(
+    title = "2010 distribution of data value",
+    y = "data value"
+    )+
+  theme(legend.position = "none")
 
+data2006 / data2010
+```
 
+```{r}
+brfss_df |>
+  filter(year %in% c(2006,2010),
+         locationabbr == "NY") |>
+  ggplot(aes(x = data_value, fill = response)) +
+  geom_density(alpha = 0.5) +
+  facet_grid(.~year) +
+  theme(axis.text.x = element_text()) +
+  labs(
+    title = "Density Plots for 2006 and 2010",
+    x = "Response",
+    y = "Density",
+    caption = "Data from BRFSS Dataset"
+  )
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```{r}
+brfss_df |>
+  filter(year %in% c(2006,2010),
+         locationabbr == "NY") |>
+  ggplot(aes(x = response, y = data_value)) +
+  geom_boxplot(aes(fill = response)) +
+  facet_grid(.~year) +
+  theme(axis.text.x = element_text()) +
+  labs(
+    title = "Box Plots for 2006 and 2010",
+    x = "Response",
+    y = "Data_value",
+    caption = "Data from BRFSS Dataset"
+  )
+```
 
 
