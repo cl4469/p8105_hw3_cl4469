@@ -127,48 +127,6 @@ brfss_df |>
 ```
 
 ```{r}
-brfss_df %>% 
-  filter(response == "Excellent") %>% 
-  group_by(year, locationabbr, locationdesc) %>% 
-  summarize(
-    ave_val = mean(data_value, na.rm = TRUE),
-  ) %>% 
-  ggplot(aes(x = year, y = ave_val)) + 
-  geom_point() + 
-  geom_line(aes(group = locationabbr))+
-  labs(
-    y="average of data value",
-    title = "average value over time within a state"
-  )
-```
-
-```{r}
-data2006 <- brfss_df |>
-  filter(year==2006 & locationabbr == "NY") |>
-  ggplot(aes(x = locationdesc, y = data_value, fill = response)) + 
-  geom_bar(stat = "identity", position = "fill" )+
-  coord_flip()+
-  labs(
-    title = "2006 distribution of data value",
-    y = "data value"
-    )+
-  theme(legend.position = "none")
-
-data2010 <- brfss_df |>
-  filter(year==2010 & locationabbr == "NY") |>
-  ggplot(aes(x = locationdesc, y = data_value, fill = response)) + 
-  geom_bar(stat = "identity", position = "fill" ) +
-  coord_flip()+
-  labs(
-    title = "2010 distribution of data value",
-    y = "data value"
-    )+
-  theme(legend.position = "none")
-
-data2006 /data2010
-```
-
-```{r}
 brfss_df |>
   filter(year %in% c(2006,2010),
          locationabbr == "NY") |>
@@ -201,7 +159,9 @@ brfss_df |>
 ```
 
 ## Problem 3
+Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
 
+First, we load and tidy nhanes_accel data.
 ```{r}
 accel_df <- read_csv("data/nhanes_accel.csv") |>
   janitor::clean_names() |>
@@ -213,6 +173,7 @@ accel_df <- read_csv("data/nhanes_accel.csv") |>
     )
 ```
 
+And then, we load and tidy nhanes accelorometer data.
 ```{r}
 covar_df <- read_csv("data/nhanes_covar.csv",skip = 4) |>
   janitor::clean_names() |>
@@ -226,24 +187,31 @@ covar_df <- read_csv("data/nhanes_covar.csv",skip = 4) |>
                             levels = c("Less than high school", "High school equivalent", "More than high school")))
 ```
 
+Next, we merge the tidied accel_df and covar_df data 
 ```{r}
 nhanes_df=
-  left_join(accel_df,covar_df)|>
+  inner_join(accel_df,covar_df)|>
   drop_na(sex,age,bmi,education) |>
   filter(age >= 21)
 ```
 
+Description: The final combined dataframe named "nhanes_df" has `r nrow(nhanes_df)` observations and `r ncol(nhanes_df)` variables. This date set includes all initially observed variables and excludes participants younger than 21 years of age and those with missing demographic data.Additionally, we organized the education as a factor taking levels ordered from "Less than high school" to "More than high school" by using fct_relevel(), and the sex as a factor taking from "male" and "female".
+
+
 Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 ```{r}
 nhanes_df |>
-  group_by(sex,education) |>
+  group_by(education,sex) |>
   summarize(n=n()) |>
   pivot_wider(
-    names_from = education,
+    names_from = sex,
     values_from = n) |>
     knitr::kable()
 ```
+Comment: From this table, we can derived that of the three levels of education, both males and females have the highest percentage with a "high school equivalent", compared to "Less than high school" and "More than high school". And there is no significant difference between number of male and female in education level of “Less than high school” and “More than high school”; however, the number of male in “High school equivalent” is significantly larger than that of women.
 
+
+Create a visualization of the age distributions for men and women in each education category
 ```{r}
 nhanes_df |> 
   ggplot(aes(x = education, y = age, color = sex)) + 
@@ -252,6 +220,7 @@ nhanes_df |>
         x = "Education level",
         y = "Age")
 ```
+Comment:
 
 Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences.
 ```{r}
