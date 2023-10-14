@@ -24,7 +24,6 @@ instacart %>% select(user_id, order_id) %>% distinct %>% count
 instacart %>% select(user_id) %>% distinct %>% count
 
 ```
-This `instacart` dataset has `r nrow(instacart)` rows and `r col(instacart)` variables. Each row represents a single product from an instacart order. Variables contain identifiers for user,order, and product; the order in which product was added to the cart. There are several order-level variables, describing the day and time of the order, and number of days since prior order. Then there are several item-specific variables, describing the product name (e.g. Yogurt, Avocado), department (e.g. dairy and eggs, produce), and aisle (e.g. yogurt, fresh fruits), and whether the item has been ordered by this user in the past. In total, there are `r instacart %>% select(product_id) %>% distinct %>% count` products found in `r instacart %>% select(user_id, order_id) %>% distinct %>% count` orders from `r instacart %>% select(user_id) %>% distinct %>% count` distinct users.
 
 ```{r}
 instacart |>
@@ -116,11 +115,10 @@ The table shows states observed equal or more than 7 times in both 2002 and 2010
 ```{r}
 brfss_df |> 
   filter(response == "Excellent") |>
-  group_by(year,locationabbr,locationdesc) |>
+  group_by(year,locationabbr) |>
   summarize(mean_data_value=mean(data_value,na.rm = TRUE)) |>
-  ggplot(aes(x = year, y = mean_data_value, color = locationabbr)) + 
-  geom_point() + 
-  geom_line(aes(group = locationabbr))+ 
+  ggplot(aes(x = year, y = mean_data_value, group = locationabbr,color = locationabbr)) + 
+  geom_line()+ 
   labs(
     y = "Average of Data Value",
     title = "Spaghetti Plot: Average Value Over Time Within a State"
@@ -167,7 +165,7 @@ data2010 <- brfss_df |>
     )+
   theme(legend.position = "none")
 
-data2006 / data2010
+data2006 /data2010
 ```
 
 ```{r}
@@ -201,5 +199,76 @@ brfss_df |>
     caption = "Data from BRFSS Dataset"
   )
 ```
+
+## Problem 3
+
+```{r}
+accel_df <- read_csv("data/nhanes_accel.csv") |>
+  janitor::clean_names() |>
+  pivot_longer(
+    min1:min1440,
+    names_to = "min",
+    names_prefix = "min",
+    values_to = "mims"
+    )
+```
+
+```{r}
+covar_df <- read_csv("data/nhanes_covar.csv",skip = 4) |>
+  janitor::clean_names() |>
+  mutate(sex=ifelse(sex==1,"Male","Female"),
+         sex = factor(sex, levels = c("Male", "Female")),
+         education = case_match(education,
+                                1 ~ "Less than high school",
+                                2 ~ "High school equivalent",
+                                3 ~ "More than high school"),
+         education = factor(education, 
+                            levels = c("Less than high school", "High school equivalent", "More than high school")))
+```
+
+```{r}
+nhanes_df=
+  left_join(accel_df,covar_df)|>
+  drop_na(sex,age,bmi,education) |>
+  filter(age >= 21)
+```
+
+Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+```{r}
+nhanes_df |>
+  group_by(sex,education) |>
+  summarize(n=n()) |>
+  pivot_wider(
+    names_from = education,
+    values_from = n) |>
+    knitr::kable()
+```
+
+```{r}
+nhanes_df |> 
+  ggplot(aes(x = education, y = age, color = sex)) + 
+  geom_boxplot() +
+  labs(title = "Age distribution for men and women", 
+        x = "Education level",
+        y = "Age")
+```
+
+Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences.
+```{r}
+nhanes_df |>
+  group_by(seqn,age,sex,education) |>
+  summarize(total_activity=sum(mims)) |>
+  ggplot(aes(x=age,y=total_activity,color=sex))+
+  geom_point(alpha = .7) +
+  geom_smooth(se = FALSE)+
+  facet_grid(. ~ education) +
+  labs(title="Total activities against age for males and females",
+       x="Age",
+       y="Total activities")
+```
+
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+
+
 
 
