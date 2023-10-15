@@ -17,15 +17,6 @@ data("instacart")
 ```
 
 ```{r}
-instacart %>% select(product_id) %>% distinct %>% count()
-
-instacart %>% select(user_id, order_id) %>% distinct %>% count 
-  
-instacart %>% select(user_id) %>% distinct %>% count
-
-```
-
-```{r}
 instacart |>
   group_by(aisle) |>
   summarize(n_obs=n()) |>
@@ -105,7 +96,7 @@ brfss_df |>
 ```
 Comment: The table shows states observed equal or more than 7 times in both 2002 and 2010.There are 6 states have observed equal or more than 7 times in 2002, which are "CT" "FL" "MA" "NC" "NJ" "PA". However, in 2010, there are 14 states have observed equal or more than 7 times, which are "CA" "CO" "FL" "MA" "MD" "NC" "NE" "NJ" "NY" "OH" "PA" "SC" "TX" "WA".
 
-Produce a plot where each state’s line depicts how the average “Excellent” response value changes over the years.
+#### Make a “spaghetti” plot of this average value over time within a state
 ```{r}
 brfss_df |> 
   filter(response == "Excellent") |>
@@ -121,7 +112,7 @@ brfss_df |>
 ```
 Comment:The spagetti plot shows the mean data values for excellent overall health in each state from 2022 to 2010. The average values for the majority of states appear to fluctuate within a relatively stable range, typically between 15 and 30. However, the data trends exhibit significant variations among the different states."
 
-Now, we make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+#### Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 ```{r}
 brfss_df |>
   filter(year %in% c(2006,2010),
@@ -159,7 +150,7 @@ Comment:The density plots and boxplots shows the data values by responses (2006 
 ## Problem 3
 Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
 
-First, we load and tidy nhanes_accel data.
+#### First, we load and tidy nhanes_accel data.
 ```{r}
 accel_df <- read_csv("data/nhanes_accel.csv") |>
   janitor::clean_names() |>
@@ -171,7 +162,7 @@ accel_df <- read_csv("data/nhanes_accel.csv") |>
     )
 ```
 
-And then, we load and tidy nhanes accelorometer data.
+#### And then, we load and tidy nhanes accelorometer data.
 ```{r}
 covar_df <- read_csv("data/nhanes_covar.csv",skip = 4) |>
   janitor::clean_names() |>
@@ -185,7 +176,7 @@ covar_df <- read_csv("data/nhanes_covar.csv",skip = 4) |>
                             levels = c("Less than high school", "High school equivalent", "More than high school")))
 ```
 
-Next, we merge the tidied accel_df and covar_df data 
+#### Next, we merge the tidied accel_df and covar_df data 
 ```{r}
 nhanes_df=
   inner_join(accel_df,covar_df)|>
@@ -198,7 +189,7 @@ Description: The final combined dataframe named "nhanes_df" has `r nrow(nhanes_d
 
 Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 
-Create a table of the age distributions for men and women in each education category
+#### Create a table of the age distributions for men and women in each education category
 ```{r}
 nhanes_df |>
   group_by(education,sex) |>
@@ -213,7 +204,7 @@ Comment: From this table and boxplot, we can derived that of the three levels of
 
 
 
-Create a visualization of the age distributions for men and women in each education category
+#### Create a visualization of the age distributions for men and women in each education category
 ```{r}
 nhanes_df |> 
   ggplot(aes(x = education, y = age, color = sex)) + 
@@ -226,7 +217,7 @@ nhanes_df |>
 Comment:The boxplot shows the min, max, and median ages of males and females for each level of educatiom. For each three of categories, ages are between 20 and 80 years. For “Less than High school education” and "high school equivalent education", we can see females have a higher median age than males. For the “More than high school education”,females have a lower median age than males.
 
 
-Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences.
+#### Aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis).
 ```{r}
 nhanes_df |>
   group_by(seqn,age,sex,education) |>
@@ -242,7 +233,7 @@ nhanes_df |>
 Comment:For “less than high school education”, both male and female's total activity tends to decrease as age increases.And Total activity is generally higher in female than in male until about age 50. There is a peak around age 60 in female’s tend line but soon decline after that. For participants with a "high school equivalent" and "more than high school education", total activity of female is generally higher than male across all ages.
 
 
-Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+#### Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex.
 ```{r}
 nhanes_df |>
   mutate(min = as.numeric(min)) |>
